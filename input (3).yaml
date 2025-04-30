@@ -1,0 +1,11 @@
+---
+fabric_context: seti_oob_access
+num_of_spines: 2
+num_of_leafs: 6
+transit: 10.10.10.0/27
+loopback: 10.10.20.0/27
+bgp_asn: 65201
+spine_hostnames: nj01pdmr[101-102]
+leaf_hostnames: nj01pamr[101-106]
+spine_port_channel_range: [1,3,5-10]
+spine_ports_range: [1-4,7,9-12]
