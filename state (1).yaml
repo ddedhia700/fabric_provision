@@ -1,0 +1,21 @@
+---
+loopbacks:
+  nj01pdmr101: 10.10.20.1/32
+  nj01pdmr102: 10.10.20.2/32
+  nj01pamr101: 10.10.20.101/32
+  nj01pamr102: 10.10.20.102/32
+  nj01pamr103: 10.10.20.103/32
+  nj01pamr104: 10.10.20.104/32
+  nj01pamr105: 10.10.20.105/32
+  nj01pamr106: 10.10.20.106/32
+transit:
+  nj01pamr101-nj01pdmr101: {subnet: 10.10.10.0/31}
+  nj01pamr102-nj01pdmr102: {subnet: 10.10.10.2/31}
+  nj01pamr103-nj01pdmr101: {subnet: 10.10.10.4/31}
+  nj01pamr104-nj01pdmr102: {subnet: 10.10.10.6/31}
+  nj01pamr105-nj01pdmr101: {subnet: 10.10.10.8/31}
+  nj01pamr106-nj01pdmr102: {subnet: 10.10.10.10/31}
+inter_leaf:
+  nj01pamr101-nj01pamr102: {subnet: 10.10.10.12/31}
+  nj01pamr103-nj01pamr104: {subnet: 10.10.10.14/31}
+  nj01pamr105-nj01pamr106: {subnet: 10.10.10.16/31}

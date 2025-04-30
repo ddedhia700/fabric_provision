@@ -1,0 +1,36 @@
+---
+local_host: nj01pamr101
+interfaces:
+  - local_port: 47
+    remote_host: nj01pdmr101
+    remote_port: 1
+    local_po: 1
+    remote_po: 1
+    transit_subnet: 10.10.10.0/31
+    remote_bgp_neighbor: 10.10.20.1/32
+  - local_port: 48
+    remote_host: nj01pdmr101
+    remote_port: 2
+    local_po: 1
+    remote_po: 1
+    transit_subnet: 10.10.10.0/31
+    remote_bgp_neighbor: 10.10.20.1/32
+  - local_port: 51
+    remote_host: nj01pamr102
+    remote_port: 51
+    local_po: 600
+    remote_po: 600
+    transit_subnet: 10.10.10.12/31
+  - local_port: 52
+    remote_host: nj01pamr102
+    remote_port: 52
+    local_po: 600
+    remote_po: 600
+    transit_subnet: 10.10.10.12/31
+bgp_neighbors:
+  - hostname: nj01pdmr101
+    neighbor_ip: 10.10.20.1/32
+    remote_asn: 65201
+  - hostname: nj01pdmr102
+    neighbor_ip: 10.10.20.2/32
+    remote_asn: 65201

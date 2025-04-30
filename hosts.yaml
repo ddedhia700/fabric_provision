@@ -1,0 +1,31 @@
+---
+all:
+  children:
+    spines:
+      hosts:
+        nj01pdmr101:
+          ansible_host: 10.10.20.1
+          bgp_asn: 65201
+        nj01pdmr102:
+          ansible_host: 10.10.20.2
+          bgp_asn: 65201
+    leafs:
+      hosts:
+        nj01pamr101:
+          ansible_host: 10.10.20.101
+          bgp_asn: 65201
+        nj01pamr102:
+          ansible_host: 10.10.20.102
+          bgp_asn: 65201
+        nj01pamr103:
+          ansible_host: 10.10.20.103
+          bgp_asn: 65201
+        nj01pamr104:
+          ansible_host: 10.10.20.104
+          bgp_asn: 65201
+        nj01pamr105:
+          ansible_host: 10.10.20.105
+          bgp_asn: 65201
+        nj01pamr106:
+          ansible_host: 10.10.20.106
+          bgp_asn: 65201

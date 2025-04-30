@@ -1,0 +1,16 @@
+---
+leaf_spine_linknet: /31
+leaf_spine_ports: [47, 48]
+leaf_pair: yes
+leaf_spine_bw: 10g
+leaf_spine_physical_topology: single_homed
+leaf_spine_logical_topology: dual_homed
+leaf_spine_bgp_topology: ibgp
+leaf_spine_link_agg: true
+leaf_spine_port_channel_id: 1
+inter_leaf: true
+inter_leaf_bw: 100g
+inter_leaf_ports: [51, 52]
+inter_leaf_link_agg: true
+inter_leaf_port_channel_id: 600
+inter_leaf_linknet: /31

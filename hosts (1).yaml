@@ -1,0 +1,23 @@
+---
+all:
+  children:
+    spines:
+      hosts:
+        nj01pdmr101:
+          ansible_host: 10.10.20.1
+        nj01pdmr102:
+          ansible_host: 10.10.20.2
+    leafs:
+      hosts:
+        nj01pamr101:
+          ansible_host: 10.10.20.101
+        nj01pamr102:
+          ansible_host: 10.10.20.102
+        nj01pamr103:
+          ansible_host: 10.10.20.103
+        nj01pamr104:
+          ansible_host: 10.10.20.104
+        nj01pamr105:
+          ansible_host: 10.10.20.105
+        nj01pamr106:
+          ansible_host: 10.10.20.106
