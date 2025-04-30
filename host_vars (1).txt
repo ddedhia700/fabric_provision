@@ -1,0 +1,18 @@
+---
+local_host: {{ local_host }}
+interfaces:
+{% for intf in interfaces %}
+  - local_port: {{ intf.local_port }}
+    remote_host: {{ intf.remote_host }}
+    remote_port: {{ intf.remote_port }}
+    local_po: {{ intf.local_po }}
+    remote_po: {{ intf.remote_po }}
+    transit_subnet: {{ intf.transit_subnet }}
+    {% if intf.remote_bgp_neighbor %}remote_bgp_neighbor: {{ intf.remote_bgp_neighbor }}{% endif %}
+{% endfor %}
+bgp_neighbors:
+{% for neighbor in bgp_neighbors %}
+  - hostname: {{ neighbor.hostname }}
+    neighbor_ip: {{ neighbor.neighbor_ip }}
+    remote_asn: {{ neighbor.remote_asn }}
+{% endfor %}
