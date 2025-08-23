@@ -1,0 +1,66 @@
+- name: Collect LLDP neighbor information
+  hosts: switches
+  gather_facts: no
+  collections:
+    - cisco.nxos
+  tasks:
+    - name: Gather LLDP neighbors
+      cisco.nxos.nxos_lldp_neighbors:
+      register: lldp_output
+
+    - name: Parse LLDP output and store links
+      set_fact:
+        lldp_links: "{{ lldp_output.lldp_neighbors | map('combine', {'local_interface': item.key, 'peer': item.value[0].neighbor_device, 'peer_interface': item.value[0].neighbor_interface}) | list }}"
+      loop: "{{ lldp_output.lldp_neighbors | dict2items }}"
+
+    - name: Store links for localhost processing
+      set_fact:
+        host_lldp: "{{ host_lldp | default([]) + [lldp_links | map('combine', {'local_host': inventory_hostname}) | list] }}"
+      delegate_to: localhost
+      run_once: true
+
+- name: Assign /31 subnets to unique inter-switch links
+  hosts: localhost
+  gather_facts: no
+  collections:
+    - ansible.utils
+  vars:
+    main_subnet: "{{ main_subnet }}"
+  tasks:
+    - name: Build unique switch pairs
+      set_fact:
+        unique_pairs: "{{ unique_pairs | default([]) + [item | combine({'src': min(item.local_host, item.peer), 'dst': max(item.local_host, item.peer), 'src_interface': item.local_interface if item.local_host < item.peer else item.peer_interface, 'dst_interface': item.peer_interface if item.local_host < item.peer else item.local_interface})] }}"
+      loop: "{{ host_lldp | flatten }}"
+      loop_control:
+        label: "{{ item.local_host }}-{{ item.peer }}"
+
+    - name: Remove duplicates and assign subnets
+      set_fact:
+        link_subnets: "{{ link_subnets | default({}) | combine({ item.src + '-' + item.dst: {'subnet': (main_subnet | ansible.utils.ipsubnet(31, loop.index0)), 'src_ip': (main_subnet | ansible.utils.ipsubnet(31, loop.index0) | ansible.utils.nthhost(1)), 'dst_ip': (main_subnet | ansible.utils.ipsubnet(31, loop.index0) | ansible.utils.nthhost(2)), 'src_interface': item.src_interface, 'dst_interface': item.dst_interface} }) }}"
+      loop: "{{ unique_pairs | unique }}"
+      loop_control:
+        index_var: loop.index0
+
+    - name: Map subnets to hosts
+      set_fact:
+        host_subnets: "{{ host_subnets | default({}) | combine({ item.src: (host_subnets[item.src] | default([]) + [{'peer': item.dst, 'subnet': link_subnets[item.src + '-' + item.dst].subnet, 'ip': link_subnets[item.src + '-' + item.dst].src_ip, 'interface': link_subnets[item.src + '-' + item.dst].src_interface}] }) | combine({ item.dst: (host_subnets[item.dst] | default([]) + [{'peer': item.src, 'subnet': link_subnets[item.src + '-' + item.dst].subnet, 'ip': link_subnets[item.src + '-' + item.dst].dst_ip, 'interface': link_subnets[item.src + '-' + item.dst].dst_interface}] }) }}"
+      loop: "{{ unique_pairs | unique }}"
+
+- name: Display and configure assigned subnets
+  hosts: switches
+  gather_facts: no
+  collections:
+    - cisco.nxos
+  tasks:
+    - name: Print assigned subnets for this host
+      debug:
+        msg: "Host {{ inventory_hostname }} assigned links: {{ hostvars['localhost']['host_subnets'][inventory_hostname] | default([]) }}"
+
+    - name: Configure interfaces with assigned IPs (example for Cisco NX-OS)
+      cisco.nxos.nxos_config:
+        lines:
+          - "interface {{ item.interface }}"
+          - "ip address {{ item.ip }}/31"
+          - "no shutdown"
+      loop: "{{ hostvars['localhost']['host_subnets'][inventory_hostname] | default([]) }}"
+      when: hostvars['localhost']['host_subnets'][inventory_hostname] is defined
