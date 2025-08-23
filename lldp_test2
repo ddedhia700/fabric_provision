@@ -1,0 +1,76 @@
+- name: Assign and configure /31 subnets for inter-switch links from LLDP
+  hosts: switches
+  gather_facts: no
+  collections:
+    - cisco.nxos
+    - ansible.utils
+  vars:
+    main_subnet: "{{ main_subnet }}"
+  tasks:
+    - name: Gather LLDP neighbors
+      cisco.nxos.nxos_command:
+        commands: "show lldp neighbors | json"
+      register: lldp_output
+      delegate_facts: true
+
+    - name: Parse LLDP JSON output and store links
+      set_fact:
+        lldp_links: "{{ lldp_output.stdout[0].TABLE_nbor.DETAIL | map('combine', {'local_interface': item.l_port_id, 'peer': item.sysname, 'peer_interface': item.port_id}) | list }}"
+      when: lldp_output.stdout[0].TABLE_nbor is defined
+      delegate_facts: true
+
+    - name: Aggregate links to localhost
+      set_fact:
+        host_lldp: "{{ host_lldp | default([]) + [hostvars[inventory_hostname].lldp_links | map('combine', {'local_host': inventory_hostname}) | list] }}"
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+
+    - name: Wait for LLDP data from all hosts
+      set_fact:
+        lldp_complete: "{{ hostvars | dict2items | select('match', 'lldp_links', 'defined') | length == play_hosts | length }}"
+      delegate_to: localhost
+      run_once: true
+      until: lldp_complete
+      retries: 10
+      delay: 2
+      when: inventory_hostname == play_hosts[0]
+
+    - name: Build unique switch pairs on localhost
+      set_fact:
+        unique_pairs: "{{ unique_pairs | default([]) + [item | combine({'src': min(item.local_host, item.peer), 'dst': max(item.local_host, item.peer), 'src_interface': item.local_interface if item.local_host < item.peer else item.peer_interface, 'dst_interface': item.peer_interface if item.local_host < item.peer else item.local_interface})] }}"
+      loop: "{{ hostvars['localhost'].host_lldp | flatten }}"
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+      when: inventory_hostname == play_hosts[0]
+
+    - name: Initialize subnet index on localhost
+      set_fact:
+        subnet_index: 0
+        link_subnets: {}
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+      when: inventory_hostname == play_hosts[0]
+
+    - name: Assign subnets to unique pairs
+      set_fact:
+        link_subnets: "{{ link_subnets | combine({ item.src + '-' + item.dst: {'subnet': (main_subnet | ansible.utils.ipsubnet(31, subnet_index)), 'src_ip': (main_subnet | ansible.utils.ipsubnet(31, subnet_index) | ansible.utils.nthhost(1)), 'dst_ip': (main_subnet | ansible.utils.ipsubnet(31, subnet_index) | ansible.utils.nthhost(2)), 'src_interface': item.src_interface, 'dst_interface': item.dst_interface} }) }}"
+        subnet_index: "{{ subnet_index | int + 1 }}"
+      loop: "{{ hostvars['localhost'].unique_pairs | unique }}"
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+      when: inventory_hostname == play_hosts[0]
+
+    - name: Map subnets to hosts
+      set_fact:
+        host_subnets: "{{ hostvars['localhost'].host_subnets | default({}) | combine({ item.src: (host_subnets[item.src] | default([]) + [{'peer': item.dst, 'subnet': hostvars['localhost'].link_subnets[item.src + '-' + item.dst].subnet, 'ip': hostvars['localhost'].linksony.nxos.nxos_config:
+        lines:
+          - "interface {{ item.interface }}"
+          - "ip address {{ item.ip }}/31"
+          - "no shutdown"
+        save_when: modified
+      loop: "{{ hostvars['localhost'].host_subnets[inventory_hostname] | default([]) }}"
+      when: hostvars['localhost'].host_subnets[inventory_hostname] is defined
